@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "compoundraids",
+  "version": "${version}",
+  "name": "CompoundRaids",
+  "description": "Raid event handler for Compound Cobblemon",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "environment": "server",
+  "entrypoints": {
+    "main": [
+      "me.unariginal.compoundraids.CompoundRaids"
+    ]
+  },
+  "mixins": [
+    "compoundraids.mixins.json",
+    {
+      "config": "compoundraids.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}",
+    "cobblemon": "1.6.0+1.21.1-SNAPSHOT"
+  }
+}

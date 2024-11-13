@@ -2,13 +2,13 @@
 
 **Planned Features**
 
--- Commands --
+**Commands**
 - /raid reload (used to reload the configurations)
 - /raid start <boss/random/category> [<location/random>] (used to manually start a raid for a specific boss, or a random boss, or a random boss from a category of bosses. Ability to specify any location from the locations.json config rather than the locations set in the boss config, or a random location)
 - /raid stop (stops all active raids, until I add a feature to specify which raid to stop.)
 - /raid give <player> <item> <amount> (give player an item from this mod. Items will include: Raid Vouchers for specific bosses, specific categories of bosses, or random. Raid Passes, again for specific bosses, categories, or any raid, used to be granted access to participate in locked raids)
 
--- Bosses --
+**Bosses**
 
 You've probably gained a bit of insight as to how bosses will be handled from the sections above this, but here's how they'll work more specifically.
 
@@ -20,11 +20,11 @@ The section will also include which locations you'd like the boss to be able to 
 
 The boss will also have a category option on it, this is intended to be used to categorize bosses by rarity, for the sake of reward distribution.
 
--- Locations --
+**Locations**
 
 A locations.json file will also exist, here you can specify the name of each location, and include the coordinates and world that you'd like the boss to spawn at if it uses that location.
 
--- Categories --
+**Categories**
 
 A categories.json file will exist, here you can specify whatever category of raid you'd like to. By default, a common, uncommon, rare, and legendary section will exist.
 
@@ -38,7 +38,7 @@ If both options are disabled/left blank, it will be considered a voucher only ra
 
 If vouchers are also disabled for the category, it will be a start-by-command-only raid.
 
--- Rewards --
+**Rewards**
 
 A rewards.json file will exist, this will be categorized by reward pools.
 
@@ -52,7 +52,7 @@ Each reward also has a weight to it, if you'd like to only give some items from 
 
 Reward pools will also have an option to set how many times it will pull from the pool, and if you'd like to exclude duplicate rewards.
 
--- Messages --
+**Messages**
 
 A messages.json file will also exist, this is fairly self explanatory.
 

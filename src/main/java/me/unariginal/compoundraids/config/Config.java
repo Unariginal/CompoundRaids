@@ -16,10 +16,12 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import me.unariginal.compoundraids.CompoundRaids;
-import me.unariginal.compoundraids.datatypes.Boss;
-import me.unariginal.compoundraids.datatypes.Location;
+import me.unariginal.compoundraids.datatypes.*;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.item.Item;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
 
 import java.io.*;
@@ -29,6 +31,12 @@ import java.util.*;
 public class Config {
     private final Map<String, Boss> bossList = new HashMap<>();
     private final Map<String, Location> locationList = new HashMap<>();
+    private final Map<String, RewardPool> rewardPoolList = new HashMap<>();
+    private final Map<String, Category> categoryList = new HashMap<>();
+
+    private String timezone = "UTC";
+    private Item raidVoucherItem;
+    private Item raidPassItem;
 
     public Config() {
         try {
@@ -37,8 +45,11 @@ public class Config {
             e.printStackTrace();
             CompoundRaids.LOGGER.error("Failed to generate default config file.");
         }
+        loadConfig();
+        loadCategories();
         loadBosses();
         loadLocations();
+        loadRewards();
     }
 
     public void checkFiles() throws IOException {
@@ -107,6 +118,121 @@ public class Config {
 
             in.close();
             out.close();
+        }
+
+        Path rewardsPath = FabricLoader.getInstance().getConfigDir().resolve("CompoundRaids/rewards.json");
+        File rewardsFile = rewardsPath.toFile();
+
+        if (!rewardsFile.exists()) {
+            rewardsFile.createNewFile();
+
+            InputStream in = CompoundRaids.class.getResourceAsStream("/rewards.json");
+            OutputStream out = new FileOutputStream(rewardsFile);
+
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = in.read(buffer)) > 0) {
+                out.write(buffer, 0, length);
+            }
+
+            in.close();
+            out.close();
+        }
+
+        Path categoriesPath = FabricLoader.getInstance().getConfigDir().resolve("CompoundRaids/categories.json");
+        File categoriesFile = categoriesPath.toFile();
+
+        if (!categoriesFile.exists()) {
+            categoriesFile.createNewFile();
+
+            InputStream in = CompoundRaids.class.getResourceAsStream("/categories.json");
+            OutputStream out = new FileOutputStream(categoriesFile);
+
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = in.read(buffer)) > 0) {
+                out.write(buffer, 0, length);
+            }
+
+            in.close();
+            out.close();
+        }
+
+        Path messagesPath = FabricLoader.getInstance().getConfigDir().resolve("CompoundRaids/messages.json");
+        File messagesFile = messagesPath.toFile();
+
+        if (!messagesFile.exists()) {
+            messagesFile.createNewFile();
+
+            InputStream in = CompoundRaids.class.getResourceAsStream("/messages.json");
+            OutputStream out = new FileOutputStream(messagesFile);
+
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = in.read(buffer)) > 0) {
+                out.write(buffer, 0, length);
+            }
+
+            in.close();
+            out.close();
+        }
+    }
+
+    public void loadConfig() {
+        Path configPath = FabricLoader.getInstance().getConfigDir().resolve("CompoundRaids/config.json");
+        File configFile = configPath.toFile();
+
+        JsonElement root;
+        try {
+            root = JsonParser.parseReader(new FileReader(configFile));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
+
+        JsonObject configObj = root.getAsJsonObject();
+        CompoundRaids.LOGGER.info("[RAIDS] Loading the config...");
+
+        timezone = configObj.get("timezone").getAsString();
+        raidVoucherItem = getItem(configObj.get("raidVoucherItem").getAsString());
+        raidPassItem = getItem(configObj.get("raidPassItem").getAsString());
+
+        CompoundRaids.LOGGER.info("[RAIDS] Config loaded!");
+    }
+
+    public void loadCategories() {
+        Path categoriesPath = FabricLoader.getInstance().getConfigDir().resolve("CompoundRaids/categories.json");
+        File categoriesFile = categoriesPath.toFile();
+
+        JsonElement root;
+        try {
+            root = JsonParser.parseReader(new FileReader(categoriesFile));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
+
+        JsonObject categoriesObj = root.getAsJsonObject();
+        CompoundRaids.LOGGER.info("[RAIDS] Loading categories...");
+
+        for (String category : categoriesObj.keySet()) {
+            JsonObject categoryObj = categoriesObj.getAsJsonObject(category);
+
+            boolean isRandomRaid = categoryObj.get("enableRandomRaids").getAsBoolean();
+            int minWait = categoryObj.get("random_minWaitTimeSeconds").getAsInt();
+            int maxWait = categoryObj.get("random_maxWaitTimeSeconds").getAsInt();
+
+            ArrayList<String> times = new ArrayList<>();
+            for (JsonElement timeElement : categoryObj.getAsJsonArray("setRaidTimes").asList()) {
+                String timeStr = timeElement.getAsString();
+                times.add(timeStr);
+            }
+
+            int minPlayers = categoryObj.get("minimumPlayersToStart").getAsInt();
+            boolean useVoucher = categoryObj.get("enableRaidVoucher").getAsBoolean();
+
+            Category raidCategory = new Category(isRandomRaid, minWait, maxWait, times, minPlayers, useVoucher);
+            categoryList.put(category, raidCategory);
         }
     }
 
@@ -243,11 +369,90 @@ public class Config {
         CompoundRaids.LOGGER.info("[RAIDS] Loaded {} locations!", locationList.size());
     }
 
+    public void loadRewards() {
+        Path rewardsPath = FabricLoader.getInstance().getConfigDir().resolve("CompoundRaids/rewards.json");
+        File rewardsFile = rewardsPath.toFile();
+
+        JsonElement root;
+        try {
+            root = JsonParser.parseReader(new FileReader(rewardsFile));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
+
+        JsonObject rewardsObj = root.getAsJsonObject();
+        CompoundRaids.LOGGER.info("[RAIDS] Loading the rewards...");
+
+        for (String rewardPoolKey : rewardsObj.keySet()) {
+            JsonObject rewardPool = rewardsObj.get(rewardPoolKey).getAsJsonObject();
+            JsonObject rewards = rewardPool.getAsJsonObject("rewards");
+            ArrayList<Reward> rewardList = new ArrayList<>();
+            CompoundRaids.LOGGER.info("[RAIDS] Creating reward pool: {}", rewardPoolKey);
+            for (String reward : rewards.keySet()) {
+                JsonObject rewardSection = rewards.getAsJsonObject(reward);
+
+                String item = rewardSection.get("item").getAsString();
+                int count = rewardSection.get("count").getAsInt();
+                String nbt = rewardSection.get("nbt").getAsString();
+
+                ArrayList<String> commands = new ArrayList<>();
+                for (JsonElement commandElement : rewardSection.get("commands").getAsJsonArray()) {
+                    String command = commandElement.getAsString();
+                    commands.add(command);
+                }
+
+                double weight = rewardSection.get("weight").getAsDouble();
+
+                Reward rewardObject = new Reward(item, count, nbt, commands, weight);
+                rewardList.add(rewardObject);
+
+                CompoundRaids.LOGGER.info("[RAIDS] Added reward: {}", reward);
+            }
+            CompoundRaids.LOGGER.info("[RAIDS] Total rewards in this pool: {}", rewardList.size());
+
+            double poolWeight = rewardPool.get("weight").getAsDouble();
+            ArrayList<String> categories = new ArrayList<>();
+            for (JsonElement categoryElement : rewardPool.getAsJsonArray("categories")) {
+                String category = categoryElement.getAsString();
+                categories.add(category);
+            }
+
+            RewardPool pool = new RewardPool(poolWeight, categories, rewardList);
+            rewardPoolList.put(rewardPoolKey, pool);
+        }
+        CompoundRaids.LOGGER.info("[RAIDS] Loaded {} reward pools!", rewardPoolList.size());
+    }
+
     public Map<String, Boss> getBossList() {
         return bossList;
     }
 
     public Map<String, Location> getLocationList() {
         return locationList;
+    }
+
+    public Map<String, RewardPool> getRewardPoolList() {
+        return rewardPoolList;
+    }
+
+    public Map<String, Category> getCategoryList() {
+        return categoryList;
+    }
+
+    public String getTimezone() {
+        return timezone;
+    }
+
+    public Item getRaidVoucherItem() {
+        return raidVoucherItem;
+    }
+
+    public Item getRaidPassItem() {
+        return raidPassItem;
+    }
+
+    private Item getItem(String namespace) {
+        return CompoundRaids.getInstance().mcServer.getWorlds().iterator().next().getRegistryManager().get(RegistryKeys.ITEM).get(Identifier.of(namespace));
     }
 }

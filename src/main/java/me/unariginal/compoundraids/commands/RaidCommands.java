@@ -3,6 +3,7 @@ package me.unariginal.compoundraids.commands;
 import com.cobblemon.mod.common.CobblemonEntities;
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import me.lucko.fabric.api.permissions.v0.Permissions;
@@ -11,6 +12,7 @@ import me.unariginal.compoundraids.config.Config;
 import me.unariginal.compoundraids.datatypes.Boss;
 import me.unariginal.compoundraids.datatypes.Location;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.server.command.CommandManager;
@@ -40,6 +42,23 @@ public class RaidCommands {
                                                             .executes(this::start)
                                             )
                             )
+                            .then(
+                                    CommandManager.literal("stop")
+                                            .requires(Permissions.require("cc.raids.stop", 4))
+                                            .executes(this::stop)
+                            )
+                            .then(
+                                    CommandManager.literal("give")
+                                            .requires(Permissions.require("cc.raids.give",4))
+                                            .then(CommandManager.argument("player", EntityArgumentType.player())
+                                                    .then(CommandManager.argument("item", StringArgumentType.string())
+                                                            .suggests(new ItemSuggestions())
+                                                            .then(CommandManager.argument("amount", IntegerArgumentType.integer(1, 64))
+                                                                    .executes(this::give)
+                                                            )
+                                                    )
+                                            )
+                            )
             );
         });
     }
@@ -55,7 +74,7 @@ public class RaidCommands {
         Pokemon bossPokemon;
         ArrayList<String> spawnLocations;
 
-        Boss bossInfo = CompoundRaids.instance.config.getBossList().get(boss);
+        Boss bossInfo = CompoundRaids.getInstance().config.getBossList().get(boss);
         bossPokemon = bossInfo.bossPokemon();
         spawnLocations = bossInfo.spawnLocations();
 
@@ -88,7 +107,7 @@ public class RaidCommands {
             return 1;
         }
 
-        Location location = CompoundRaids.instance.config.getLocationList().get(locationKey);
+        Location location = CompoundRaids.getInstance().config.getLocationList().get(locationKey);
         Vec3d position = location.coordinates();
         ServerWorld world = location.world();
 
@@ -101,12 +120,28 @@ public class RaidCommands {
 
         var entity = new PokemonEntity(world, bossPokemon, CobblemonEntities.POKEMON);
         entity.setPos(position.getX(), position.getY(), position.getZ());
+
+        int chunkX = (int) Math.floor(position.getX() / 16);
+        int chunkZ = (int) Math.floor(position.getZ() / 16);
+
+        world.setChunkForced(chunkX, chunkZ, true);
+
         world.spawnEntity(entity);
         entity.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, -1, 9999, false, false));
         entity.setPersistent();
 
+        world.setChunkForced(chunkX, chunkZ, false);
+
         CompoundRaids.LOGGER.info("[RAIDS] {} was spawned", bossPokemon.getSpecies());
         CompoundRaids.LOGGER.info("[RAIDS] Raid Started!");
+        return 1;
+    }
+
+    private int stop(CommandContext<ServerCommandSource> ctx) {
+        return 1;
+    }
+
+    private int give(CommandContext<ServerCommandSource> ctx) {
         return 1;
     }
 }

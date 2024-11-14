@@ -40,6 +40,7 @@
         "location": "another_location",
         "weight": 75.0
       }
-    ]
+    ],
+    "category": "common"
   }
 }

@@ -1,0 +1,52 @@
+{
+  "common": {
+    "enableRandomRaids": true,
+    "random_minWaitTimeSeconds": 3600,
+    "random_maxWaitTimeSeconds": 18000,
+    "setRaidTimes": [
+      "9:45",
+      "12:00",
+      "16:00",
+      "21:15"
+    ],
+    "minimumPlayersToStart": 1,
+    "enableRaidVoucher": true
+  },
+  "uncommon": {
+    "enableRandomRaids": true,
+    "random_minWaitTimeSeconds": 3600,
+    "random_maxWaitTimeSeconds": 18000,
+    "setRaidTimes": [],
+    "minimumPlayersToStart": 3,
+    "enableRaidVoucher": true
+  },
+  "rare": {
+    "enableRandomRaids": false,
+    "random_minWaitTimeSeconds": 3600,
+    "random_maxWaitTimeSeconds": 18000,
+    "setRaidTimes": [
+      "9:45",
+      "12:00",
+      "16:00",
+      "21:15"
+    ],
+    "minimumPlayersToStart": 5,
+    "enableRaidVoucher": true
+  },
+  "legendary": {
+    "enableRandomRaids": false,
+    "random_minWaitTimeSeconds": 3600,
+    "random_maxWaitTimeSeconds": 18000,
+    "setRaidTimes": [],
+    "minimumPlayersToStart": 10,
+    "enableRaidVoucher": true
+  },
+  "custom_category": {
+    "enableRandomRaids": true,
+    "random_minWaitTimeSeconds": 60,
+    "random_maxWaitTimeSeconds": 360,
+    "setRaidTimes": [],
+    "minimumPlayersToStart": 1,
+    "enableRaidVoucher": true
+  }
+}

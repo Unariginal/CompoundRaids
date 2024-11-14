@@ -1,0 +1,36 @@
+{
+  "reward_pool_example_1": {
+    "weight": 50.0,
+    "categories": [
+      "common",
+      "uncommon"
+    ],
+    "rewards": {
+      "diamonds": {
+        "item": "minecraft:diamond",
+        "count": 32,
+        "nbt": "",
+        "commands": [],
+        "weight": 10.0
+      },
+      "master_ball": {
+        "item": "cobblemon:master_ball",
+        "count": 1,
+        "nbt": "",
+        "commands": [
+          "say {player} just got the master ball reward!"
+        ],
+        "weight": 1.0
+      },
+      "crate_key": {
+        "item": "",
+        "count": 0,
+        "nbt": "",
+        "commands": [
+          "give {player} minecraft:paper 1"
+        ],
+        "weight": 50.0
+      }
+    }
+  }
+}

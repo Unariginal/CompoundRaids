@@ -119,7 +119,7 @@ public class RaidCommands {
         }
 
         var entity = new PokemonEntity(world, bossPokemon, CobblemonEntities.POKEMON);
-        entity.setPos(position.getX(), position.getY(), position.getZ());
+        entity.setPosition(position);
 
         int chunkX = (int) Math.floor(position.getX() / 16);
         int chunkZ = (int) Math.floor(position.getZ() / 16);
@@ -127,6 +127,7 @@ public class RaidCommands {
         world.setChunkForced(chunkX, chunkZ, true);
 
         world.spawnEntity(entity);
+
         entity.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, -1, 9999, false, false));
         entity.setPersistent();
 

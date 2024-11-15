@@ -1,5 +1,37 @@
 {
   "timezone": "EST",
-  "raidVoucherItem": "minecraft:paper",
-  "raidPassItem": "minecraft:paper"
+  "items": {
+    "item_raidVoucher": "minecraft:feather",
+    "item_raidPass": "minecraft:paper",
+    "useRaidPokeballs": true,
+    "item_raidPokeball": "cobblemon:premier_ball",
+    "nbt_raidPokeball": [
+      "{display: {Name: '{\"extra\":[{\"text\":\"\"},{\"color\":\"white\",\"text\":\"Raid Premier Ball [{form} {pokemon}]\"}],\"text\":\"\"}'}}"
+    ]
+  },
+  "raid_settings": {
+    "raid_prePhaseTimeSeconds": 300,
+    "raid_fightPhaseTimeSeconds": 900,
+    "raid_afterFightCooldownSeconds": 30,
+    "raid_catchPhaseTimeSeconds": 150,
+    "raid_catchWarningTimeSeconds": 30,
+    "raid_healthIncreasePerPlayer": 100,
+    "raid_bannedMoves": [
+      "fly",
+      "rest"
+    ],
+    "raid_bannedPokemon": [
+      "slowpoke"
+    ],
+    "raid_bannedHeldItems": [
+      "cobblemon:muscle_band"
+    ],
+    "raid_bannedAbilities": [
+      "drought"
+    ],
+    "raid_bannedBagItems": [
+      "cobblemon:figy_berry",
+      "cobblemon:wiki_berry"
+    ]
+  }
 }

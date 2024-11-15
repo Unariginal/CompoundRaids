@@ -17,6 +17,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import me.unariginal.compoundraids.CompoundRaids;
 import me.unariginal.compoundraids.datatypes.*;
+import me.unariginal.compoundraids.managers.Messages;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.item.Item;
 import net.minecraft.registry.RegistryKeys;
@@ -33,6 +34,7 @@ public class Config {
     private final Map<String, Location> locationList = new HashMap<>();
     private final Map<String, RewardPool> rewardPoolList = new HashMap<>();
     private final Map<String, Category> categoryList = new HashMap<>();
+    private Messages messagesObject;
 
     private String timezone = "UTC";
     private Item raidVoucherItem;
@@ -50,6 +52,7 @@ public class Config {
         loadBosses();
         loadLocations();
         loadRewards();
+        loadMessages();
     }
 
     public void checkFiles() throws IOException {
@@ -194,8 +197,9 @@ public class Config {
         CompoundRaids.LOGGER.info("[RAIDS] Loading the config...");
 
         timezone = configObj.get("timezone").getAsString();
-        raidVoucherItem = getItem(configObj.get("raidVoucherItem").getAsString());
-        raidPassItem = getItem(configObj.get("raidPassItem").getAsString());
+
+        //raidVoucherItem = getItem(configObj.get("item_raidVoucher").getAsString());
+        //raidPassItem = getItem(configObj.get("item_raidPass").getAsString());
 
         CompoundRaids.LOGGER.info("[RAIDS] Config loaded!");
     }
@@ -353,7 +357,7 @@ public class Config {
             String worldStr = locObj.get("world").getAsString();
             ServerWorld theWorld = CompoundRaids.getInstance().mcServer.getOverworld();
 
-            for (ServerWorld world : CompoundRaids.instance.mcServer.getWorlds()) {
+            for (ServerWorld world : CompoundRaids.getInstance().mcServer.getWorlds()) {
                 if (world.asString().equalsIgnoreCase(worldStr)) {
                     theWorld = world;
                     break;
@@ -422,6 +426,30 @@ public class Config {
             rewardPoolList.put(rewardPoolKey, pool);
         }
         CompoundRaids.LOGGER.info("[RAIDS] Loaded {} reward pools!", rewardPoolList.size());
+    }
+
+    public void loadMessages() {
+        Path messagesPath = FabricLoader.getInstance().getConfigDir().resolve("CompoundRaids/messages.json");
+        File messagesFile = messagesPath.toFile();
+
+        JsonElement root;
+        try {
+            root = JsonParser.parseReader(new FileReader(messagesFile));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
+
+        JsonObject messagesRoot = root.getAsJsonObject();
+        String prefix = messagesRoot.get("prefix").getAsString();
+
+        JsonObject messages = messagesRoot.getAsJsonObject("messages");
+        Map<String, String> messagesMap = new HashMap<>();
+        for (String message : messages.keySet()) {
+            messagesMap.put(message, messages.get(message).getAsString());
+        }
+
+        messagesObject = new Messages(prefix, messagesMap);
     }
 
     public Map<String, Boss> getBossList() {

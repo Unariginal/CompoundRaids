@@ -2,6 +2,7 @@ package me.unariginal.compoundraids;
 
 import me.unariginal.compoundraids.commands.RaidCommands;
 import me.unariginal.compoundraids.config.Config;
+import me.unariginal.compoundraids.utils.TextManager;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.kyori.adventure.platform.fabric.FabricServerAudiences;
@@ -11,12 +12,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CompoundRaids implements ModInitializer {
-    public static final String MOD_ID = "compoundraids";
+    private static final String MOD_ID = "compoundraids";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-    public static MiniMessage mm = MiniMessage.miniMessage();
     public static FabricServerAudiences audiences;
+    public TextManager tm = new TextManager();
 
-    public static CompoundRaids instance;
+    private static CompoundRaids instance;
     public Config config;
     public MinecraftServer mcServer;
 

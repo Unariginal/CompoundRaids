@@ -2,16 +2,19 @@ package me.unariginal.compoundraids.datatypes;
 
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import me.unariginal.compoundraids.CompoundRaids;
+import net.kyori.adventure.bossbar.BossBar;
+import net.minecraft.entity.boss.CommandBossBar;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
 
 import java.time.Instant;
 import java.util.*;
 
 public class Raid {
-    private CompoundRaids cr = CompoundRaids.getInstance();
+    private final CompoundRaids cr = CompoundRaids.getInstance();
 
     private final UUID uuid;
     private final Boss boss;
@@ -21,7 +24,8 @@ public class Raid {
     private int stage = 0;
     private long startTime = 0;
 
-    public Map<Long, List<Task>> tasks = new HashMap<>();
+    private final Map<Long, List<Task>> tasks = new HashMap<>();
+    private BossBarData bossBarData;
 
     public Raid(UUID uuid, Boss boss, PokemonEntity bossEntity, ServerWorld world) {
         this.uuid = uuid;
@@ -52,8 +56,18 @@ public class Raid {
         return bossEntity;
     }
 
+    public BossBarData getBossBarData() {
+        return bossBarData;
+    }
+
     public void beginPrePhase() {
         stage = 1;
+        BossBar bossBar = BossBar.bossBar(cr.mm.deserialize("<red>Prepare for fight raid stuff!"), 1f, BossBar.Color.PINK, BossBar.Overlay.PROGRESS);
+        bossBarData = new BossBarData(bossBar, world.getTime(), world.getTime() + (cr.config.getRaidSettings().raid_prePhaseTimeSeconds() * 20L));
+        cr.mcServer.getPlayerManager().getPlayerList().forEach(player -> {
+            player.showBossBar(bossBarData.bossBar());
+        });
+
         //pre boss bar
         //pre phase message
         CompoundRaids.LOGGER.info("[Raids] Pre Phase Started");
@@ -63,6 +77,9 @@ public class Raid {
 
     public void beginFightPhase() {
         stage = 2;
+        cr.mcServer.getPlayerManager().getPlayerList().forEach(player -> {
+            player.hideBossBar(bossBarData.bossBar());
+        });
         //disable old boss bar
         //fight boss bar
         //fight phase message

@@ -1,31 +1,19 @@
 package me.unariginal.compoundraids.commands;
 
-import com.cobblemon.mod.common.CobblemonEntities;
-import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
-import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import me.unariginal.compoundraids.CompoundRaids;
 import me.unariginal.compoundraids.config.Config;
-import me.unariginal.compoundraids.datatypes.Boss;
-import me.unariginal.compoundraids.datatypes.Location;
 import me.unariginal.compoundraids.datatypes.Raid;
 import me.unariginal.compoundraids.managers.Messages;
 import me.unariginal.compoundraids.managers.StartRaid;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.minecraft.command.argument.EntityArgumentType;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.Vec3d;
-
-import java.util.ArrayList;
-import java.util.Random;
 
 public class RaidCommands {
     CompoundRaids cr = CompoundRaids.getInstance();

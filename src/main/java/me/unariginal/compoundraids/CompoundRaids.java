@@ -2,8 +2,8 @@ package me.unariginal.compoundraids;
 
 import me.unariginal.compoundraids.commands.RaidCommands;
 import me.unariginal.compoundraids.config.Config;
+import me.unariginal.compoundraids.datatypes.BossBarData;
 import me.unariginal.compoundraids.datatypes.Raid;
-import me.unariginal.compoundraids.datatypes.Task;
 import me.unariginal.compoundraids.managers.DamageHandler;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -16,9 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class CompoundRaids implements ModInitializer {
     private static final String MOD_ID = "compoundraids";
@@ -58,22 +55,6 @@ public class CompoundRaids implements ModInitializer {
                         }
                     }
                 });
-//                if (!tasks.isEmpty()) {
-//                    //ArrayList<Long> markForDeletion = new ArrayList<>();
-//                    //for (Long tickKey : tasks.keySet()) {
-//                        //if (currentTick >= tickKey) {
-//                    if (tasks.get(currentTick) != null) {
-//                        if (!tasks.get(currentTick).isEmpty()) {
-//                            tasks.get(currentTick).forEach(task -> task.action().run());
-//                            tasks.remove(currentTick);
-//                        }
-//                    }
-                        //}
-                    //}
-                    //for (Long l : markForDeletion) {
-                    //    tasks.remove(l);
-                    //}
-                //}
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -90,6 +71,14 @@ public class CompoundRaids implements ModInitializer {
                         if (activeRaids.get(raidIndex).getBossEntity().isDead()) {
                             activeRaids.get(raidIndex).handleBossDefeat();
                         }
+                    }
+
+                    // Boss Bar Stuff
+                    BossBarData bossBarData = activeRaids.get(raidIndex).getBossBarData();
+                    if (bossBarData != null) {
+                        long tickDifference = bossBarData.endTick() - bossBarData.startTick();
+                        float progressRate = 1 / (float)(tickDifference / 20L);
+                        bossBarData.bossBar().progress(bossBarData.bossBar().progress() - progressRate);
                     }
                 }
                 for (Raid r : markForDeletion) {

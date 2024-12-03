@@ -1,8 +1,5 @@
 package me.unariginal.compoundraids.managers;
 
-import me.unariginal.compoundraids.CompoundRaids;
-import net.minecraft.text.Text;
-
 import java.util.Map;
 
 public class Messages {

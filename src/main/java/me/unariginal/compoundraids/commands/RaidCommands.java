@@ -11,7 +11,11 @@ import me.unariginal.compoundraids.CompoundRaids;
 import me.unariginal.compoundraids.config.Config;
 import me.unariginal.compoundraids.datatypes.Boss;
 import me.unariginal.compoundraids.datatypes.Location;
+import me.unariginal.compoundraids.datatypes.Raid;
+import me.unariginal.compoundraids.managers.Messages;
+import me.unariginal.compoundraids.managers.StartRaid;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
@@ -24,6 +28,9 @@ import java.util.ArrayList;
 import java.util.Random;
 
 public class RaidCommands {
+    CompoundRaids cr = CompoundRaids.getInstance();
+    MiniMessage mm = cr.mm;
+
     public RaidCommands() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(
@@ -45,7 +52,10 @@ public class RaidCommands {
                             .then(
                                     CommandManager.literal("stop")
                                             .requires(Permissions.require("cc.raids.stop", 4))
-                                            .executes(this::stop)
+                                            .then(
+                                                    CommandManager.argument("id", IntegerArgumentType.integer())
+                                                            .executes(this::stop)
+                                            )
                             )
                             .then(
                                     CommandManager.literal("give")
@@ -59,90 +69,62 @@ public class RaidCommands {
                                                     )
                                             )
                             )
+                            .then(
+                                    CommandManager.literal("list")
+                                            .requires(Permissions.require("cc.raids.list", 4))
+                                            .executes(this::list)
+                            )
             );
         });
     }
 
     private int reload(CommandContext<ServerCommandSource> ctx) {
-        CompoundRaids.getInstance().config = new Config();
+        cr.config = new Config();
         return 1;
     }
 
     private int start(CommandContext<ServerCommandSource> ctx) {
-        String boss = StringArgumentType.getString(ctx, "boss");
-
-        Pokemon bossPokemon;
-        ArrayList<String> spawnLocations;
-
-        Boss bossInfo = CompoundRaids.getInstance().config.getBossList().get(boss);
-        bossPokemon = bossInfo.bossPokemon();
-        spawnLocations = bossInfo.spawnLocations();
-
-        Random rand = new Random();
-        double totalWeight = 0.0;
-        for (String location : spawnLocations) {
-            totalWeight += bossInfo.weights().get(location);
-        }
-
-        double randWeight = rand.nextDouble(totalWeight);
-        double cumulativeWeight = 0.0;
-        String chosenLocation = null;
-
-        for (String location : spawnLocations) {
-            cumulativeWeight += bossInfo.weights().get(location);
-            if (randWeight < cumulativeWeight) {
-                chosenLocation = location;
-                break;
-            }
-        }
-        if (chosenLocation == null) {
-            CompoundRaids.LOGGER.info("[RAIDS] The chosen location was NULL");
-            return 1;
-        }
-
-        String locationKey = spawnLocations.get(spawnLocations.indexOf(chosenLocation));
-
-        if (locationKey == null) {
-            CompoundRaids.LOGGER.info("[RAIDS] Location String was NULL");
-            return 1;
-        }
-
-        Location location = CompoundRaids.getInstance().config.getLocationList().get(locationKey);
-        Vec3d position = location.coordinates();
-        ServerWorld world = location.world();
-
-        CompoundRaids.LOGGER.info("[RAIDS] Selected {}", bossPokemon);
-
-        if (bossPokemon == null) {
-            CompoundRaids.LOGGER.info("[RAIDS] Boss Pokemon was NULL");
-            return 1;
-        }
-
-        var entity = new PokemonEntity(world, bossPokemon, CobblemonEntities.POKEMON);
-        entity.setPosition(position);
-
-        int chunkX = (int) Math.floor(position.getX() / 16);
-        int chunkZ = (int) Math.floor(position.getZ() / 16);
-
-        world.setChunkForced(chunkX, chunkZ, true);
-
-        world.spawnEntity(entity);
-
-        entity.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, -1, 9999, false, false));
-        entity.setPersistent();
-
-        world.setChunkForced(chunkX, chunkZ, false);
-
-        CompoundRaids.LOGGER.info("[RAIDS] {} was spawned", bossPokemon.getSpecies());
-        CompoundRaids.LOGGER.info("[RAIDS] Raid Started!");
-        return 1;
+        return StartRaid.start(ctx);
     }
 
     private int stop(CommandContext<ServerCommandSource> ctx) {
+        Messages messages = cr.config.getMessagesObject();
+        int id = IntegerArgumentType.getInteger(ctx, "id");
+
+        if (cr.activeRaids.contains(cr.activeRaids.get(id - 1))) {
+            cr.activeRaids.get(id - 1).stopRaid();
+            cr.activeRaids.remove(id - 1);
+        }
+
+        String parsedMessage = messages.getRawMessage("text_raidStopped").replaceAll("%prefix%", messages.getPrefix()).replaceAll("%id%", String.valueOf(id));
+        ctx.getSource().sendMessage(mm.deserialize(parsedMessage));
+
         return 1;
     }
 
     private int give(CommandContext<ServerCommandSource> ctx) {
+        return 1;
+    }
+
+    private int list(CommandContext<ServerCommandSource> ctx) {
+        Messages messages = cr.config.getMessagesObject();
+        if (cr.activeRaids.isEmpty()) {
+            ctx.getSource().sendMessage(mm.deserialize(messages.getRawMessage("text_noActiveRaids").replaceAll("%prefix%", messages.getPrefix())));
+            return 1;
+        }
+
+        ctx.getSource().sendMessage(mm.deserialize(messages.getRawMessage("text_listRaidsHeader")));
+        for (int id = 0; id < cr.activeRaids.size(); id++) {
+            Raid thisRaid = cr.activeRaids.get(id);
+            // I'll fix this horrible placeholder method later
+            String parsedMessage = messages.getRawMessage("text_listRaidsBody")
+                    .replaceAll("%id%", String.valueOf(id + 1))
+                    .replaceAll("%boss%", thisRaid.getBoss().bossName())
+                    .replaceAll("%uuid%", thisRaid.getUuid().toString())
+                    .replaceAll("%species%", thisRaid.getBoss().bossPokemon().getSpecies().toString());
+            ctx.getSource().sendMessage(mm.deserialize(parsedMessage));
+        }
+
         return 1;
     }
 }

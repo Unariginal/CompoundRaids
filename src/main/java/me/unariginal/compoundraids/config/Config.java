@@ -30,13 +30,13 @@ import java.nio.file.Path;
 import java.util.*;
 
 public class Config {
+    private RaidSettings raidSettings;
     private final Map<String, Boss> bossList = new HashMap<>();
     private final Map<String, Location> locationList = new HashMap<>();
     private final Map<String, RewardPool> rewardPoolList = new HashMap<>();
     private final Map<String, Category> categoryList = new HashMap<>();
     private Messages messagesObject;
 
-    private String timezone = "UTC";
     private Item raidVoucherItem;
     private Item raidPassItem;
 
@@ -196,7 +196,15 @@ public class Config {
         JsonObject configObj = root.getAsJsonObject();
         CompoundRaids.LOGGER.info("[RAIDS] Loading the config...");
 
-        timezone = configObj.get("timezone").getAsString();
+        String timezone = configObj.get("timezone").getAsString();
+        JsonObject settings = configObj.getAsJsonObject("raid_settings");
+        long pre = settings.get("raid_prePhaseTimeSeconds").getAsLong();
+        long fight = settings.get("raid_fightPhaseTimeSeconds").getAsLong();
+        long postFight = settings.get("raid_afterFightCooldownSeconds").getAsLong();
+        long catchPhase = settings.get("raid_catchPhaseTimeSeconds").getAsLong();
+        long catchWarning = settings.get("raid_catchWarningTimeSeconds").getAsLong();
+        long healthInc = settings.get("raid_healthIncreasePerPlayer").getAsLong();
+        raidSettings = new RaidSettings(timezone, pre, fight, postFight, catchPhase, catchWarning, healthInc);
 
         //raidVoucherItem = getItem(configObj.get("item_raidVoucher").getAsString());
         //raidPassItem = getItem(configObj.get("item_raidPass").getAsString());
@@ -308,6 +316,7 @@ public class Config {
                 }
 
                 bossPokemon.getCustomProperties().add(UncatchableProperty.INSTANCE.uncatchable());
+                bossPokemon.getSpecies().getFeatures().add("dmax=10");
 
                 // TODO: Held Item
 
@@ -452,6 +461,10 @@ public class Config {
         messagesObject = new Messages(prefix, messagesMap);
     }
 
+    public RaidSettings getRaidSettings() {
+        return raidSettings;
+    }
+
     public Map<String, Boss> getBossList() {
         return bossList;
     }
@@ -468,8 +481,8 @@ public class Config {
         return categoryList;
     }
 
-    public String getTimezone() {
-        return timezone;
+    public Messages getMessagesObject() {
+        return messagesObject;
     }
 
     public Item getRaidVoucherItem() {

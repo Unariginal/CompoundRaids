@@ -2,12 +2,13 @@ package me.unariginal.compoundraids.datatypes;
 
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import me.unariginal.compoundraids.CompoundRaids;
+import me.unariginal.compoundraids.managers.Bossbar;
+import me.unariginal.compoundraids.managers.Messages;
 import net.kyori.adventure.bossbar.BossBar;
-import net.minecraft.entity.boss.CommandBossBar;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
 
 import java.time.Instant;
@@ -23,9 +24,13 @@ public class Raid {
 
     private int stage = 0;
     private long startTime = 0;
+    private long endTime = 0;
+    private long phaseStart = 0;
+    private long phaseTime = 0;
 
     private final Map<Long, List<Task>> tasks = new HashMap<>();
     private BossBarData bossBarData;
+    private BossBar bar;
 
     public Raid(UUID uuid, Boss boss, PokemonEntity bossEntity, ServerWorld world) {
         this.uuid = uuid;
@@ -36,7 +41,10 @@ public class Raid {
 
     public void stopRaid() {
         stage = -1;
-        bossEntity.kill();
+        if (bossEntity.getUuid() == uuid) {
+            bossEntity.kill();
+        }
+        removeBossBar();
         CompoundRaids.LOGGER.info("[RAIDS] Raid {} ({}) stopped!", boss.bossName(), uuid);
     }
 
@@ -62,27 +70,52 @@ public class Raid {
 
     public void beginPrePhase() {
         stage = 1;
-        BossBar bossBar = BossBar.bossBar(cr.mm.deserialize("<red>Prepare for fight raid stuff!"), 1f, BossBar.Color.PINK, BossBar.Overlay.PROGRESS);
-        bossBarData = new BossBarData(bossBar, world.getTime(), world.getTime() + (cr.config.getRaidSettings().raid_prePhaseTimeSeconds() * 20L));
-        cr.mcServer.getPlayerManager().getPlayerList().forEach(player -> {
-            player.showBossBar(bossBarData.bossBar());
+        phaseTime = cr.config.getRaidSettings().raid_prePhaseTimeSeconds();
+        phaseStart = world.getTime();
+
+        cr.config.getBossbarList().keySet().forEach(key -> {
+            Bossbar barInfo = cr.config.getBossbarList().get(key);
+            if (barInfo.phase().equalsIgnoreCase("prepare")) {
+                if (barInfo.bosses().contains(boss.bossName())) {
+                    bossBarData = new BossBarData(barInfo, phaseStart, phaseStart + (phaseTime * 20L));
+                }
+            }
         });
+
+        displayBossbar();
 
         //pre boss bar
         //pre phase message
-        CompoundRaids.LOGGER.info("[Raids] Pre Phase Started");
-        CompoundRaids.LOGGER.info("[Raids] Next Phase In {} Seconds..", cr.config.getRaidSettings().raid_prePhaseTimeSeconds());
+        sendAllPlayers("text_startPrePhase");
+
+        //CompoundRaids.LOGGER.info("[Raids] Pre Phase Started");
+        //CompoundRaids.LOGGER.info("[Raids] Next Phase In {} Seconds..", cr.config.getRaidSettings().raid_prePhaseTimeSeconds());
         addTask(world, cr.config.getRaidSettings().raid_prePhaseTimeSeconds() * 20L, this::beginFightPhase);
     }
 
     public void beginFightPhase() {
         stage = 2;
-        cr.mcServer.getPlayerManager().getPlayerList().forEach(player -> {
-            player.hideBossBar(bossBarData.bossBar());
+        removeBossBar();
+
+        phaseTime = cr.config.getRaidSettings().raid_fightPhaseTimeSeconds();
+        phaseStart = world.getTime();
+
+        cr.config.getBossbarList().keySet().forEach(key -> {
+            Bossbar barInfo = cr.config.getBossbarList().get(key);
+            if (barInfo.phase().equalsIgnoreCase("fight")) {
+                if (barInfo.bosses().contains(boss.bossName())) {
+                    bossBarData = new BossBarData(barInfo, phaseStart, phaseStart + (phaseTime * 20L));
+                }
+            }
         });
+
+        displayBossbar();
+
         //disable old boss bar
         //fight boss bar
         //fight phase message
+        sendAllPlayers("text_startFightPhase");
+
         startTime = Instant.now().toEpochMilli();
 
         Vec3d position = bossEntity.getPos();
@@ -101,41 +134,77 @@ public class Raid {
         // Stop force loading the chunk
         world.setChunkForced(chunkX, chunkZ, false);
 
-        CompoundRaids.LOGGER.info("[RAIDS] {} was spawned", bossEntity.getPokemon().getSpecies());
-        CompoundRaids.LOGGER.info("[RAIDS] Fight Phase Started");
+        //CompoundRaids.LOGGER.info("[RAIDS] {} was spawned", bossEntity.getPokemon().getSpecies());
+        //CompoundRaids.LOGGER.info("[RAIDS] Fight Phase Started");
         addTask(world, cr.config.getRaidSettings().raid_fightPhaseTimeSeconds()*20L, this::endFightPhase);
     }
 
     public void handleBossDefeat() {
         stage = 3;
-        // disable boss bars
-        // catch warning boss bar
+        removeBossBar();
+        endTime = Instant.now().toEpochMilli();
+
+        phaseTime = cr.config.getRaidSettings().raid_catchWarningTimeSeconds();
+        phaseStart = world.getTime();
+
+        cr.config.getBossbarList().keySet().forEach(key -> {
+            Bossbar barInfo = cr.config.getBossbarList().get(key);
+            if (barInfo.phase().equalsIgnoreCase("catch-warning")) {
+                if (barInfo.bosses().contains(boss.bossName())) {
+                    bossBarData = new BossBarData(barInfo, phaseStart, phaseStart + (phaseTime * 20L));
+                }
+            }
+        });
+
+        displayBossbar();
+
         tasks.clear();
         addTask(world, cr.config.getRaidSettings().raid_catchWarningTimeSeconds()*20L, this::beginCatchPhase);
-        // messages
+
+        sendAllPlayers("text_bossDefeated");
+        sendAllPlayers("text_catchEncounterWarning");
         // leaderboard
         // rewards
-        CompoundRaids.LOGGER.info("[Raids] Boss Defeated");
+        //CompoundRaids.LOGGER.info("[Raids] Boss Defeated");
     }
 
     public void beginCatchPhase() {
-        // disable boss bars
-        // catch phase boss bar
         stage = 4;
+        removeBossBar();
+
+        phaseTime = cr.config.getRaidSettings().raid_catchPhaseTimeSeconds();
+        phaseStart = world.getTime();
+
+        cr.config.getBossbarList().keySet().forEach(key -> {
+            Bossbar barInfo = cr.config.getBossbarList().get(key);
+            if (barInfo.phase().equalsIgnoreCase("catch")) {
+                if (barInfo.bosses().contains(boss.bossName())) {
+                    bossBarData = new BossBarData(barInfo, phaseStart, phaseStart + (phaseTime * 20L));
+                }
+            }
+        });
+
+        displayBossbar();
+
         addTask(world, cr.config.getRaidSettings().raid_catchPhaseTimeSeconds()*20L, this::endCatchPhase);
-        // catch message
-        CompoundRaids.LOGGER.info("[Raids] Begin Catch Phase");
+        sendAllPlayers("text_startCatchPhase");
+        //CompoundRaids.LOGGER.info("[Raids] Begin Catch Phase");
     }
 
     public void endFightPhase() {
         stage = -1;
-        // LOSER
-        CompoundRaids.LOGGER.info("[Raids] Times Up");
+        sendAllPlayers("text_timesUp");
+        removeBossBar();
+        //CompoundRaids.LOGGER.info("[Raids] Times Up");
+        tasks.clear();
     }
 
     public void endCatchPhase() {
         stage = -1;
-        CompoundRaids.LOGGER.info("[Raids] Catch Phase Over");
+        sendAllPlayers("text_catchPhaseEnd");
+        removeBossBar();
+        //CompoundRaids.LOGGER.info("[Raids] Catch Phase Over");
+        tasks.clear();
     }
 
     private void addTask(ServerWorld world, long delay, Runnable action) {
@@ -155,5 +224,91 @@ public class Raid {
 
     public Map<Long, List<Task>> getTasks() {
         return tasks;
+    }
+
+    private void removeBossBar() {
+        cr.mcServer.getPlayerManager().getPlayerList().forEach(player -> {
+            player.hideBossBar(bar);
+        });
+    }
+
+    private void displayBossbar() {
+        cr.mcServer.getPlayerManager().getPlayerList().forEach(player -> {
+            bar = BossBar.bossBar(cr.mm.deserialize(handlePlaceholders(bossBarData.bossbar().text())), 1f, bossBarData.bossbar().color(), bossBarData.bossbar().style());
+            player.showBossBar(bar);
+        });
+    }
+
+    private void sendAllPlayers(String key) {
+        cr.mcServer.getPlayerManager().getPlayerList().forEach(player -> {
+            player.sendMessage(cr.mm.deserialize(handlePlaceholders(cr.config.getMessagesObject().getRawMessage(key))));
+        });
+    }
+
+    public BossBar getBar() {
+        return bar;
+    }
+
+    public void displayOverlay(ServerPlayerEntity player) {
+        if (bossBarData.bossbar().useOverlay()) {
+            player.sendActionBar(cr.mm.deserialize(handlePlaceholders(bossBarData.bossbar().overlayText())));
+        }
+    }
+
+    private String handlePlaceholders(String message) {
+        Messages msgs = cr.config.getMessagesObject();
+        message = message.replaceAll("%prefix%", msgs.getPrefix());
+        message = message.replaceAll("%boss%", boss.bossName());
+        message = message.replaceAll("%phase_time%", getHMS(phaseTime));
+        message = message.replaceAll("%form%", boss.bossPokemon().getForm().getName());
+        message = message.replaceAll("%pokemon%", boss.bossPokemon().getSpecies().getName());
+
+        long fightTime = 0;
+        if (startTime < endTime) {
+            fightTime = endTime - startTime;
+            fightTime /= 1000;
+        }
+
+        message = message.replaceAll("%time%", getHMS(fightTime));
+
+        int id = 0;
+        for (id = 0; id < cr.activeRaids.size(); id++) {
+            if (cr.activeRaids.get(id).getUuid() == uuid) {
+                break;
+            }
+        }
+        message = message.replaceAll("%id%", String.valueOf(id + 1));
+
+        long timeLeft = (phaseStart + (phaseTime * 20L)) - world.getTime();
+        timeLeft /= 20;
+        message = message.replaceAll("%timer%", getHMS(timeLeft));
+
+        message = message.replaceAll("%currenthp%", String.valueOf(bossEntity.getHealth()));
+        message = message.replaceAll("%maxhp%", String.valueOf(bossEntity.getMaxHealth()));
+
+        return message;
+    }
+
+    private String getHMS(long rawTime) {
+        String formattedTime = "";
+        long hours = 0;
+        long minutes = 0;
+        long seconds = rawTime;
+        long temp = 0;
+        if (rawTime >= 3600) {
+            seconds = rawTime % 3600;
+            hours = (rawTime - seconds) / 3600;
+            formattedTime = formattedTime.concat(hours + "h ");
+        }
+        temp = seconds;
+        seconds = seconds % 60;
+        temp = temp - seconds;
+        minutes = temp / 60;
+        if (minutes > 0) {
+            formattedTime = formattedTime.concat(minutes + "m ");
+        }
+        formattedTime = formattedTime.concat(seconds + "s");
+
+        return formattedTime;
     }
 }

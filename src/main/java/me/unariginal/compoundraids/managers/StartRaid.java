@@ -73,7 +73,7 @@ public class StartRaid {
             return 0;
         }
 
-        CompoundRaids.LOGGER.info("[RAIDS] Selected {}", bossPokemon.getSpecies());
+        //CompoundRaids.LOGGER.info("[RAIDS] Selected {}", bossPokemon.getSpecies());
 
         PokemonEntity entity = new PokemonEntity(world, bossPokemon, CobblemonEntities.POKEMON);
         entity.setPosition(position);

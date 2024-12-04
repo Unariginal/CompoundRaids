@@ -12,13 +12,16 @@ import com.cobblemon.mod.common.pokemon.Gender;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.cobblemon.mod.common.pokemon.Species;
 import com.cobblemon.mod.common.pokemon.properties.UncatchableProperty;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import me.unariginal.compoundraids.CompoundRaids;
 import me.unariginal.compoundraids.datatypes.*;
+import me.unariginal.compoundraids.managers.Bossbar;
 import me.unariginal.compoundraids.managers.Messages;
 import net.fabricmc.loader.api.FabricLoader;
+import net.kyori.adventure.bossbar.BossBar;
 import net.minecraft.item.Item;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.world.ServerWorld;
@@ -35,6 +38,7 @@ public class Config {
     private final Map<String, Location> locationList = new HashMap<>();
     private final Map<String, RewardPool> rewardPoolList = new HashMap<>();
     private final Map<String, Category> categoryList = new HashMap<>();
+    private final Map<String, Bossbar> bossbarList = new HashMap<>();
     private Messages messagesObject;
 
     private Item raidVoucherItem;
@@ -53,6 +57,7 @@ public class Config {
         loadLocations();
         loadRewards();
         loadMessages();
+        loadBossbars();
     }
 
     public void checkFiles() throws IOException {
@@ -461,6 +466,89 @@ public class Config {
         messagesObject = new Messages(prefix, messagesMap);
     }
 
+    public void loadBossbars() {
+        Path messagesPath = FabricLoader.getInstance().getConfigDir().resolve("CompoundRaids/messages.json");
+        File messagesFile = messagesPath.toFile();
+
+        JsonElement root;
+        try {
+            root = JsonParser.parseReader(new FileReader(messagesFile));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
+
+        JsonObject messagesRoot = root.getAsJsonObject();
+        JsonObject bossbars = messagesRoot.getAsJsonObject("bossbars");
+        for (String bossbar : bossbars.keySet()) {
+            JsonObject bossbarObj = bossbars.getAsJsonObject(bossbar);
+
+            String phase = bossbarObj.get("phase").getAsString();
+
+            boolean useOverlay = bossbarObj.get("useOverlay").getAsBoolean();
+            String overlayText = "";
+            if (useOverlay) {
+                overlayText = bossbarObj.get("overlayText").getAsString();
+            }
+
+            String color = bossbarObj.get("color").getAsString();
+            String style = bossbarObj.get("style").getAsString();
+            String text = bossbarObj.get("text").getAsString();
+
+            ArrayList<String> bosses = new ArrayList<>();
+            for (JsonElement boss : bossbarObj.getAsJsonArray("bosses")) {
+                bosses.add(boss.getAsString());
+            }
+
+            BossBar.Color bossBarColor = BossBar.Color.WHITE;
+
+            switch (color) {
+                case "blue":
+                    bossBarColor = BossBar.Color.BLUE;
+                    break;
+                case "pink":
+                    bossBarColor = BossBar.Color.PINK;
+                    break;
+                case "red":
+                    bossBarColor = BossBar.Color.RED;
+                    break;
+                case "green":
+                    bossBarColor = BossBar.Color.GREEN;
+                    break;
+                case "yellow":
+                    bossBarColor = BossBar.Color.YELLOW;
+                    break;
+                case "purple":
+                    bossBarColor = BossBar.Color.PURPLE;
+                    break;
+                default:
+                    break;
+            }
+
+            BossBar.Overlay bossBarOverlay = BossBar.Overlay.PROGRESS;
+            switch (style) {
+                case "notched_6":
+                    bossBarOverlay = BossBar.Overlay.NOTCHED_6;
+                    break;
+                case "notched_10":
+                    bossBarOverlay = BossBar.Overlay.NOTCHED_10;
+                    break;
+                case "notched_12":
+                    bossBarOverlay = BossBar.Overlay.NOTCHED_12;
+                    break;
+                case "notched_20":
+                    bossBarOverlay = BossBar.Overlay.NOTCHED_20;
+                    break;
+                default:
+                    break;
+            }
+
+            //BossBar bar = BossBar.bossBar(CompoundRaids.getInstance().mm.deserialize(text), 1f, bossBarColor, bossBarOverlay);
+            Bossbar theBar = new Bossbar(phase, text, bossBarColor, bossBarOverlay, useOverlay, overlayText, bosses);
+            bossbarList.put(bossbar, theBar);
+        }
+    }
+
     public RaidSettings getRaidSettings() {
         return raidSettings;
     }
@@ -483,6 +571,10 @@ public class Config {
 
     public Messages getMessagesObject() {
         return messagesObject;
+    }
+
+    public Map<String, Bossbar> getBossbarList() {
+        return bossbarList;
     }
 
     public Item getRaidVoucherItem() {

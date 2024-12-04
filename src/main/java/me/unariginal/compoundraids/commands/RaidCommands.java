@@ -81,7 +81,7 @@ public class RaidCommands {
 
         if (cr.activeRaids.contains(cr.activeRaids.get(id - 1))) {
             cr.activeRaids.get(id - 1).stopRaid();
-            cr.activeRaids.remove(id - 1);
+            //cr.activeRaids.remove(id - 1);
         }
 
         String parsedMessage = messages.getRawMessage("text_raidStopped").replaceAll("%prefix%", messages.getPrefix()).replaceAll("%id%", String.valueOf(id));

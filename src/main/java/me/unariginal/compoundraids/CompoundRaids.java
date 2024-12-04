@@ -4,7 +4,6 @@ import me.unariginal.compoundraids.commands.RaidCommands;
 import me.unariginal.compoundraids.config.Config;
 import me.unariginal.compoundraids.datatypes.BossBarData;
 import me.unariginal.compoundraids.datatypes.Raid;
-import me.unariginal.compoundraids.managers.DamageHandler;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -38,7 +37,7 @@ public class CompoundRaids implements ModInitializer {
             audiences = FabricServerAudiences.of(server);
             config = new Config();
 
-            new DamageHandler();
+            //new DamageHandler();
         });
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
@@ -59,31 +58,46 @@ public class CompoundRaids implements ModInitializer {
                 e.printStackTrace();
             }
 
-            if (currentTick % 20 == 0) {
-                ArrayList<Raid> markForDeletion = new ArrayList<>();
-                for (int raidIndex = 0; raidIndex < activeRaids.size(); raidIndex++) {
-                    if (activeRaids.get(raidIndex).getStage() == -1) {
-                        activeRaids.get(raidIndex).stopRaid();
-                        markForDeletion.add(activeRaids.get(raidIndex));
-                    }
+            ArrayList<Raid> markForDeletion = new ArrayList<>();
+            for (int raidIndex = 0; raidIndex < activeRaids.size(); raidIndex++) {
+                Raid raid = activeRaids.get(raidIndex);
+                BossBarData bossBarData = raid.getBossBarData();
 
-                    if (activeRaids.get(raidIndex).getStage() == 2) {
-                        if (activeRaids.get(raidIndex).getBossEntity().isDead()) {
-                            activeRaids.get(raidIndex).handleBossDefeat();
+                if (raid.getStage() == 2) {
+                    if (raid.getBossEntity().isDead()) {
+                        //LOGGER.info("[RAIDS] Boss Defeated. ID: {}, UUID: {}", raidIndex, raid.getUuid());
+                        raid.handleBossDefeat();
+                    } else {
+                        if (bossBarData != null) {
+                            float maxhp = raid.getBossEntity().getMaxHealth();
+                            float hp = raid.getBossEntity().getHealth();
+                            if (maxhp > 0) {
+                                float progress = hp / maxhp;
+                                if (progress < 0) {
+                                    progress = 0;
+                                }
+                                raid.getBar().progress(progress);
+                            }
                         }
                     }
-
-                    // Boss Bar Stuff
-                    BossBarData bossBarData = activeRaids.get(raidIndex).getBossBarData();
+                } else if (raid.getStage() == -1) {
+                    //LOGGER.info("[RAIDS] Should be removing raid {}, uuid: {}", raidIndex, raid.getUuid());
+                    raid.stopRaid();
+                    markForDeletion.add(raid);
+                } else {
                     if (bossBarData != null) {
                         long tickDifference = bossBarData.endTick() - bossBarData.startTick();
-                        float progressRate = 1 / (float)(tickDifference / 20L);
-                        bossBarData.bossBar().progress(bossBarData.bossBar().progress() - progressRate);
+                        float progressRate = 1 / (float)(tickDifference);
+                        float newProgress = raid.getBar().progress() - progressRate;
+                        raid.getBar().progress(newProgress >= 0 ? newProgress : 0);
                     }
                 }
-                for (Raid r : markForDeletion) {
-                    activeRaids.remove(r);
-                }
+
+                mcServer.getPlayerManager().getPlayerList().forEach(raid::displayOverlay);
+            }
+            for (Raid r : markForDeletion) {
+                //LOGGER.info("[RAIDS] Removing Raid {}", r.getUuid());
+                activeRaids.remove(r);
             }
         });
 

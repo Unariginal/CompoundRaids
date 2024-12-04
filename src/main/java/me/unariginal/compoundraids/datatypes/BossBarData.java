@@ -1,6 +1,6 @@
 package me.unariginal.compoundraids.datatypes;
 
-import net.kyori.adventure.bossbar.BossBar;
+import me.unariginal.compoundraids.managers.Bossbar;
 
-public record BossBarData(BossBar bossBar, long startTick, long endTick) {
+public record BossBarData(Bossbar bossbar, long startTick, long endTick) {
 }

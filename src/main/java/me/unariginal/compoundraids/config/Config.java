@@ -12,7 +12,6 @@ import com.cobblemon.mod.common.pokemon.Gender;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.cobblemon.mod.common.pokemon.Species;
 import com.cobblemon.mod.common.pokemon.properties.UncatchableProperty;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -29,6 +28,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.*;
 
@@ -41,8 +41,8 @@ public class Config {
     private final Map<String, Bossbar> bossbarList = new HashMap<>();
     private Messages messagesObject;
 
-    private Item raidVoucherItem;
-    private Item raidPassItem;
+    //private Item raidVoucherItem;
+    //private Item raidPassItem;
 
     public Config() {
         try {
@@ -273,7 +273,18 @@ public class Config {
 
             Species bossSpecies = PokemonSpecies.INSTANCE.getByName(bossObj.get("species").getAsString());
             if (bossSpecies != null) {
-                Pokemon bossPokemon = bossSpecies.create(bossObj.get("level").getAsInt());
+                int level = bossObj.get("level").getAsInt();
+                Pokemon bossPokemon = new Pokemon();
+                bossPokemon.setSpecies(bossSpecies);
+
+                try {
+                    Field pokeField = bossPokemon.getClass().getDeclaredField("level");
+                    pokeField.setAccessible(true);
+                    pokeField.set(bossPokemon, level);
+                } catch (IllegalAccessException | NoSuchFieldException e) {
+                    throw new RuntimeException(e);
+                }
+
                 bossPokemon.getFeatures().clear();
                 PokemonProperties.Companion.parse(bossObj.get("form").getAsString()).apply(bossPokemon);
                 bossPokemon.setScaleModifier(bossObj.get("scale").getAsFloat());
@@ -320,6 +331,16 @@ public class Config {
                     bossPokemon.getMoveSet().setMove(3, move4.create());
                 }
 
+                int maxhp = (((2 * bossPokemon.getSpecies().getBaseStats().get(Stats.HP) + bossPokemon.getIvs().get(Stats.HP) + (bossPokemon.getEvs().get(Stats.HP) / 4)) * level) / 100) + level + 10;
+
+                try {
+                    Field pokeField = bossPokemon.getClass().getDeclaredField("currentHealth");
+                    pokeField.setAccessible(true);
+                    pokeField.set(bossPokemon, maxhp);
+                } catch (IllegalAccessException | NoSuchFieldException e) {
+                    throw new RuntimeException(e);
+                }
+
                 bossPokemon.getCustomProperties().add(UncatchableProperty.INSTANCE.uncatchable());
                 bossPokemon.getSpecies().getFeatures().add("dmax=10");
 
@@ -335,7 +356,7 @@ public class Config {
                     weights.put(locStr, locWeight);
                 }
 
-                Boss bossInfo = new Boss(boss, bossPokemon, spawnLocations, weights);
+                Boss bossInfo = new Boss(boss, bossPokemon, maxhp, maxhp, spawnLocations, weights);
 
                 bossList.put(boss, bossInfo);
 
@@ -577,15 +598,15 @@ public class Config {
         return bossbarList;
     }
 
-    public Item getRaidVoucherItem() {
-        return raidVoucherItem;
-    }
-
-    public Item getRaidPassItem() {
-        return raidPassItem;
-    }
-
-    private Item getItem(String namespace) {
-        return CompoundRaids.getInstance().mcServer.getWorlds().iterator().next().getRegistryManager().get(RegistryKeys.ITEM).get(Identifier.of(namespace));
-    }
+//    public Item getRaidVoucherItem() {
+//        return raidVoucherItem;
+//    }
+//
+//    public Item getRaidPassItem() {
+//        return raidPassItem;
+//    }
+//
+//    private Item getItem(String namespace) {
+//        return CompoundRaids.getInstance().mcServer.getWorlds().iterator().next().getRegistryManager().get(RegistryKeys.ITEM).get(Identifier.of(namespace));
+//    }
 }

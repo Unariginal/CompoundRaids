@@ -81,7 +81,6 @@ public class RaidCommands {
 
         if (cr.activeRaids.contains(cr.activeRaids.get(id - 1))) {
             cr.activeRaids.get(id - 1).stopRaid();
-            //cr.activeRaids.remove(id - 1);
         }
 
         String parsedMessage = messages.getRawMessage("text_raidStopped").replaceAll("%prefix%", messages.getPrefix()).replaceAll("%id%", String.valueOf(id));
@@ -104,7 +103,6 @@ public class RaidCommands {
         ctx.getSource().sendMessage(mm.deserialize(messages.getRawMessage("text_listRaidsHeader")));
         for (int id = 0; id < cr.activeRaids.size(); id++) {
             Raid thisRaid = cr.activeRaids.get(id);
-            // I'll fix this horrible placeholder method later
             String parsedMessage = messages.getRawMessage("text_listRaidsBody")
                     .replaceAll("%id%", String.valueOf(id + 1))
                     .replaceAll("%boss%", thisRaid.getBoss().bossName())

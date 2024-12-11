@@ -15,10 +15,6 @@ public class Messages {
         return prefix;
     }
 
-    public Map<String, String> getMessagesMap() {
-        return messagesMap;
-    }
-
     public String getRawMessage(String key) {
         return messagesMap.get(key);
     }

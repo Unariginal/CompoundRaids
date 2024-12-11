@@ -20,7 +20,6 @@ public class StartRaid {
     public static CompoundRaids cr = CompoundRaids.getInstance();
 
     public static int start(CommandContext<ServerCommandSource> ctx) {
-        Messages messages = cr.config.getMessagesObject();
         String boss = StringArgumentType.getString(ctx, "boss");
 
         Pokemon bossPokemon;
@@ -72,8 +71,6 @@ public class StartRaid {
             CompoundRaids.LOGGER.info("[RAIDS] Boss Pokemon was NULL");
             return 0;
         }
-
-        //CompoundRaids.LOGGER.info("[RAIDS] Selected {}", bossPokemon.getSpecies());
 
         PokemonEntity entity = new PokemonEntity(world, bossPokemon, CobblemonEntities.POKEMON);
         entity.setPosition(position);

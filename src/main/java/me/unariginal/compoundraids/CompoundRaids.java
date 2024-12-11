@@ -1,9 +1,13 @@
 package me.unariginal.compoundraids;
 
+import com.cobblemon.mod.common.api.Priority;
+import com.cobblemon.mod.common.api.events.CobblemonEvents;
+import kotlin.Unit;
 import me.unariginal.compoundraids.commands.RaidCommands;
 import me.unariginal.compoundraids.config.Config;
 import me.unariginal.compoundraids.datatypes.BossBarData;
 import me.unariginal.compoundraids.datatypes.Raid;
+import me.unariginal.compoundraids.managers.DamageHandler;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -29,6 +33,8 @@ public class CompoundRaids implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        LOGGER.info("[RAIDS] Loading Mod...");
+
         instance = this;
         new RaidCommands();
 
@@ -37,7 +43,16 @@ public class CompoundRaids implements ModInitializer {
             audiences = FabricServerAudiences.of(server);
             config = new Config();
 
-            //new DamageHandler();
+            new DamageHandler();
+            CobblemonEvents.POKEMON_ENTITY_SAVE_TO_WORLD.subscribe(Priority.NORMAL, event -> {
+                activeRaids.forEach(raid -> {
+                    if (event.getPokemonEntity().getUuid() == raid.getUuid()) {
+                        event.cancel();
+                    }
+                });
+
+                return Unit.INSTANCE;
+            });
         });
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
@@ -64,13 +79,19 @@ public class CompoundRaids implements ModInitializer {
                 BossBarData bossBarData = raid.getBossBarData();
 
                 if (raid.getStage() == 2) {
-                    if (raid.getBossEntity().isDead()) {
-                        //LOGGER.info("[RAIDS] Boss Defeated. ID: {}, UUID: {}", raidIndex, raid.getUuid());
+                    if (raid.getBoss().hp() <= 0 || raid.getBossEntity().isDead()) {
                         raid.handleBossDefeat();
                     } else {
+                        if (raid.getBossEntity().isBattling()) {
+                            if (raid.getBoss().bossPokemon().getCurrentHealth() != raid.getBoss().hp()) {
+                                LOGGER.info("Fixing the health!!");
+                                raid.getBoss().setHp(raid.getBoss().bossPokemon().getCurrentHealth());
+                            }
+                        }
+
                         if (bossBarData != null) {
-                            float maxhp = raid.getBossEntity().getMaxHealth();
-                            float hp = raid.getBossEntity().getHealth();
+                            float maxhp = raid.getBoss().maxhp();
+                            float hp = raid.getBoss().hp();
                             if (maxhp > 0) {
                                 float progress = hp / maxhp;
                                 if (progress < 0) {
@@ -81,7 +102,6 @@ public class CompoundRaids implements ModInitializer {
                         }
                     }
                 } else if (raid.getStage() == -1) {
-                    //LOGGER.info("[RAIDS] Should be removing raid {}, uuid: {}", raidIndex, raid.getUuid());
                     raid.stopRaid();
                     markForDeletion.add(raid);
                 } else {
@@ -96,7 +116,6 @@ public class CompoundRaids implements ModInitializer {
                 mcServer.getPlayerManager().getPlayerList().forEach(raid::displayOverlay);
             }
             for (Raid r : markForDeletion) {
-                //LOGGER.info("[RAIDS] Removing Raid {}", r.getUuid());
                 activeRaids.remove(r);
             }
         });

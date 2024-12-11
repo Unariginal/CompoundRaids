@@ -1,5 +1,6 @@
 package me.unariginal.compoundraids.datatypes;
 
+import com.cobblemon.mod.common.Cobblemon;
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import me.unariginal.compoundraids.CompoundRaids;
 import me.unariginal.compoundraids.managers.Bossbar;
@@ -11,6 +12,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Vec3d;
 
+import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.*;
 
@@ -42,7 +44,25 @@ public class Raid {
     public void stopRaid() {
         stage = -1;
         if (bossEntity.getUuid() == uuid) {
-            bossEntity.kill();
+            if (bossEntity.isLiving()) {
+                if (getBoss().bossPokemon().getLevel() > 100) {
+                    try {
+                        Field pokeField = getBoss().bossPokemon().getClass().getDeclaredField("level");
+                        pokeField.setAccessible(true);
+                        pokeField.set(getBoss().bossPokemon(), 100);
+                    } catch (IllegalAccessException | NoSuchFieldException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                if (bossEntity.isBattling()) {
+                    if (bossEntity.getBattleId() != null) {
+                        if (Cobblemon.INSTANCE.getBattleRegistry().getBattle(bossEntity.getBattleId()) != null) {
+                            Cobblemon.INSTANCE.getBattleRegistry().getBattle(bossEntity.getBattleId()).end();
+                        }
+                    }
+                }
+                bossEntity.kill();
+            }
         }
         removeBossBar();
         CompoundRaids.LOGGER.info("[RAIDS] Raid {} ({}) stopped!", boss.bossName(), uuid);
@@ -84,12 +104,8 @@ public class Raid {
 
         displayBossbar();
 
-        //pre boss bar
-        //pre phase message
         sendAllPlayers("text_startPrePhase");
 
-        //CompoundRaids.LOGGER.info("[Raids] Pre Phase Started");
-        //CompoundRaids.LOGGER.info("[Raids] Next Phase In {} Seconds..", cr.config.getRaidSettings().raid_prePhaseTimeSeconds());
         addTask(world, cr.config.getRaidSettings().raid_prePhaseTimeSeconds() * 20L, this::beginFightPhase);
     }
 
@@ -111,9 +127,6 @@ public class Raid {
 
         displayBossbar();
 
-        //disable old boss bar
-        //fight boss bar
-        //fight phase message
         sendAllPlayers("text_startFightPhase");
 
         startTime = Instant.now().toEpochMilli();
@@ -134,8 +147,6 @@ public class Raid {
         // Stop force loading the chunk
         world.setChunkForced(chunkX, chunkZ, false);
 
-        //CompoundRaids.LOGGER.info("[RAIDS] {} was spawned", bossEntity.getPokemon().getSpecies());
-        //CompoundRaids.LOGGER.info("[RAIDS] Fight Phase Started");
         addTask(world, cr.config.getRaidSettings().raid_fightPhaseTimeSeconds()*20L, this::endFightPhase);
     }
 
@@ -165,7 +176,6 @@ public class Raid {
         sendAllPlayers("text_catchEncounterWarning");
         // leaderboard
         // rewards
-        //CompoundRaids.LOGGER.info("[Raids] Boss Defeated");
     }
 
     public void beginCatchPhase() {
@@ -188,14 +198,12 @@ public class Raid {
 
         addTask(world, cr.config.getRaidSettings().raid_catchPhaseTimeSeconds()*20L, this::endCatchPhase);
         sendAllPlayers("text_startCatchPhase");
-        //CompoundRaids.LOGGER.info("[Raids] Begin Catch Phase");
     }
 
     public void endFightPhase() {
         stage = -1;
         sendAllPlayers("text_timesUp");
         removeBossBar();
-        //CompoundRaids.LOGGER.info("[Raids] Times Up");
         tasks.clear();
     }
 
@@ -203,7 +211,6 @@ public class Raid {
         stage = -1;
         sendAllPlayers("text_catchPhaseEnd");
         removeBossBar();
-        //CompoundRaids.LOGGER.info("[Raids] Catch Phase Over");
         tasks.clear();
     }
 
@@ -283,8 +290,8 @@ public class Raid {
         timeLeft /= 20;
         message = message.replaceAll("%timer%", getHMS(timeLeft));
 
-        message = message.replaceAll("%currenthp%", String.valueOf(bossEntity.getHealth()));
-        message = message.replaceAll("%maxhp%", String.valueOf(bossEntity.getMaxHealth()));
+        message = message.replaceAll("%currenthp%", String.valueOf(boss.hp()));
+        message = message.replaceAll("%maxhp%", String.valueOf(boss.bossPokemon().getMaxHealth()));
 
         return message;
     }

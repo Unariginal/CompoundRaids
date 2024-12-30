@@ -75,7 +75,7 @@ public class StartRaid {
         PokemonEntity entity = new PokemonEntity(world, bossPokemon, CobblemonEntities.POKEMON);
         entity.setPosition(position);
 
-        Raid newRaid = new Raid(entity.getUuid(), bossInfo, entity, world);
+        Raid newRaid = new Raid(entity.getUuid(), bossInfo, entity, position, world);
         cr.activeRaids.add(newRaid);
 
         int id = -1;

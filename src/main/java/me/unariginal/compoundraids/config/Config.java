@@ -21,10 +21,7 @@ import me.unariginal.compoundraids.managers.Bossbar;
 import me.unariginal.compoundraids.managers.Messages;
 import net.fabricmc.loader.api.FabricLoader;
 import net.kyori.adventure.bossbar.BossBar;
-import net.minecraft.item.Item;
-import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
 
 import java.io.*;

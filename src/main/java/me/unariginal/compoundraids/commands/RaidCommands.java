@@ -20,50 +20,48 @@ public class RaidCommands {
     MiniMessage mm = cr.mm;
 
     public RaidCommands() {
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            dispatcher.register(
-                    CommandManager.literal("raid")
-                            .then(
-                                    CommandManager.literal("reload")
-                                            .requires(Permissions.require("cc.raids.reload", 4))
-                                            .executes(this::reload)
-                            )
-                            .then(
-                                    CommandManager.literal("start")
-                                            .requires(Permissions.require("cc.raids.start", 4))
-                                            .then(
-                                                    CommandManager.argument("boss", StringArgumentType.string())
-                                                            .suggests(new BossSuggestions())
-                                                            .executes(this::start)
-                                            )
-                            )
-                            .then(
-                                    CommandManager.literal("stop")
-                                            .requires(Permissions.require("cc.raids.stop", 4))
-                                            .then(
-                                                    CommandManager.argument("id", IntegerArgumentType.integer())
-                                                            .executes(this::stop)
-                                            )
-                            )
-                            .then(
-                                    CommandManager.literal("give")
-                                            .requires(Permissions.require("cc.raids.give",4))
-                                            .then(CommandManager.argument("player", EntityArgumentType.player())
-                                                    .then(CommandManager.argument("item", StringArgumentType.string())
-                                                            .suggests(new ItemSuggestions())
-                                                            .then(CommandManager.argument("amount", IntegerArgumentType.integer(1, 64))
-                                                                    .executes(this::give)
-                                                            )
-                                                    )
-                                            )
-                            )
-                            .then(
-                                    CommandManager.literal("list")
-                                            .requires(Permissions.require("cc.raids.list", 4))
-                                            .executes(this::list)
-                            )
-            );
-        });
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(
+                CommandManager.literal("raid")
+                        .then(
+                                CommandManager.literal("reload")
+                                        .requires(Permissions.require("cc.raids.reload", 4))
+                                        .executes(this::reload)
+                        )
+                        .then(
+                                CommandManager.literal("start")
+                                        .requires(Permissions.require("cc.raids.start", 4))
+                                        .then(
+                                                CommandManager.argument("boss", StringArgumentType.string())
+                                                        .suggests(new BossSuggestions())
+                                                        .executes(this::start)
+                                        )
+                        )
+                        .then(
+                                CommandManager.literal("stop")
+                                        .requires(Permissions.require("cc.raids.stop", 4))
+                                        .then(
+                                                CommandManager.argument("id", IntegerArgumentType.integer())
+                                                        .executes(this::stop)
+                                        )
+                        )
+                        .then(
+                                CommandManager.literal("give")
+                                        .requires(Permissions.require("cc.raids.give",4))
+                                        .then(CommandManager.argument("player", EntityArgumentType.player())
+                                                .then(CommandManager.argument("item", StringArgumentType.string())
+                                                        .suggests(new ItemSuggestions())
+                                                        .then(CommandManager.argument("amount", IntegerArgumentType.integer(1, 64))
+                                                                .executes(this::give)
+                                                        )
+                                                )
+                                        )
+                        )
+                        .then(
+                                CommandManager.literal("list")
+                                        .requires(Permissions.require("cc.raids.list", 4))
+                                        .executes(this::list)
+                        )
+        ));
     }
 
     private int reload(CommandContext<ServerCommandSource> ctx) {

@@ -7,6 +7,7 @@
 - /raid start <boss/random/category> [<location/random>] (used to manually start a raid for a specific boss, or a random boss, or a random boss from a category of bosses. Ability to specify any location from the locations.json config rather than the locations set in the boss config, or a random location)
 - /raid stop (stops all active raids, until I add a feature to specify which raid to stop.)
 - /raid give <player> <item> <amount> (give player an item from this mod. Items will include: Raid Vouchers for specific bosses, specific categories of bosses, or random. Raid Passes, again for specific bosses, categories, or any raid, used to be granted access to participate in locked raids)
+- /raid list (lists all active raids)
 
 **Bosses**
 
@@ -54,7 +55,7 @@ Reward pools will also have an option to set how many times it will pull from th
 
 **Messages**
 
-A messages.json file will also exist, this is fairly self explanatory.
+A raid-messages.json file will also exist, this is fairly self explanatory.
 
 It will contain every message I can think to add to it, with placeholders, etc.
 

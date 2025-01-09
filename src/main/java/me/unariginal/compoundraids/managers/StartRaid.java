@@ -25,8 +25,23 @@ public class StartRaid {
         Pokemon bossPokemon;
         ArrayList<String> spawnLocations;
 
-        Boss bossInfo = cr.config.getBossList().get(boss);
+
+        Boss bossInfo = new Boss(
+                cr.config.getBossList().get(boss).bossName(),
+                cr.config.getBossList().get(boss).bossPokemon(),
+                cr.config.getBossList().get(boss).hp(),
+                cr.config.getBossList().get(boss).maxhp(),
+                cr.config.getBossList().get(boss).spawnLocations(),
+                cr.config.getBossList().get(boss).weights());
+        Boss catchBossInfo = new Boss(
+                cr.config.getBossList().get(boss).bossName(),
+                cr.config.getBossList().get(boss).bossPokemon(),
+                cr.config.getBossList().get(boss).hp(),
+                cr.config.getBossList().get(boss).maxhp(),
+                cr.config.getBossList().get(boss).spawnLocations(),
+                cr.config.getBossList().get(boss).weights());
         bossPokemon = bossInfo.bossPokemon();
+        bossPokemon.heal();
         spawnLocations = bossInfo.spawnLocations();
 
         // Select a spawn location based on the weights set *****
@@ -74,8 +89,9 @@ public class StartRaid {
 
         PokemonEntity entity = new PokemonEntity(world, bossPokemon, CobblemonEntities.POKEMON);
         entity.setPosition(position);
+        entity.setHealth(entity.getMaxHealth());
 
-        Raid newRaid = new Raid(entity.getUuid(), bossInfo, entity, position, world);
+        Raid newRaid = new Raid(entity.getUuid(), bossInfo, catchBossInfo, entity, position, world);
         cr.activeRaids.add(newRaid);
 
         int id = -1;

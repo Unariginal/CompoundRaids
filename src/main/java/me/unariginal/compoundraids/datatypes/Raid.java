@@ -3,6 +3,7 @@ package me.unariginal.compoundraids.datatypes;
 import com.cobblemon.mod.common.Cobblemon;
 import com.cobblemon.mod.common.CobblemonEntities;
 import com.cobblemon.mod.common.api.pokemon.PokemonProperties;
+import com.cobblemon.mod.common.api.pokemon.stats.Stats;
 import com.cobblemon.mod.common.api.storage.party.PlayerPartyStore;
 import com.cobblemon.mod.common.battles.BattleBuilder;
 import com.cobblemon.mod.common.battles.BattleFormat;
@@ -29,6 +30,7 @@ public class Raid {
 
     private final UUID uuid;
     private final Boss boss;
+    private final Boss catchBoss;
     private final PokemonEntity bossEntity;
     private final Vec3d position;
     private final ServerWorld world;
@@ -47,9 +49,10 @@ public class Raid {
     public ArrayList<ServerPlayerEntity> playersBattling = new ArrayList<>();
     public ArrayList<PokemonEntity> clones = new ArrayList<>();
 
-    public Raid(UUID uuid, Boss boss, PokemonEntity bossEntity, Vec3d position, ServerWorld world) {
+    public Raid(UUID uuid, Boss boss, Boss catchBoss, PokemonEntity bossEntity, Vec3d position, ServerWorld world) {
         this.uuid = uuid;
         this.boss = boss;
+        this.catchBoss = catchBoss;
         this.bossEntity = bossEntity;
         this.position = position;
         this.world = world;
@@ -158,6 +161,7 @@ public class Raid {
 
         // Mark the time that the raid started
         startTime = Instant.now().toEpochMilli();
+        boss.bossPokemon().heal();
 
         Vec3d position = bossEntity.getPos();
         // Force load chunks so the entity can be spawned
@@ -256,15 +260,8 @@ public class Raid {
 
     private void createCatchEncounter(ServerPlayerEntity player) {
         Vec3d position = player.getPos();
-        PlayerPartyStore party = Cobblemon.INSTANCE.getStorage().getParty(player);
-        party.heal();
 
-        if (party.size() <= 0) {
-            player.sendMessage(Text.literal("No Pokemon in party!"));
-            return;
-        }
-
-        Pokemon bossPokemon = boss.bossPokemon();
+        Pokemon bossPokemon = catchBoss.bossPokemon();
         Pokemon bossClone = new Pokemon();
         bossClone.setSpecies(bossPokemon.getSpecies());
 
@@ -285,20 +282,27 @@ public class Raid {
         bossClone.setEvs$common(bossPokemon.getEvs());
         bossClone.setIvs$common(bossPokemon.getIvs());
         bossClone.getMoveSet().copyFrom(bossPokemon.getMoveSet());
-        bossClone.setCurrentHealth(bossPokemon.getCurrentHealth());
-
-        bossClone.getCustomProperties().add(UncatchableProperty.INSTANCE.uncatchable());
+        bossClone.heal();
+        bossClone.setCurrentHealth(bossClone.getMaxHealth());
 
         ServerWorld world = player.getServerWorld();
-
         PokemonEntity entity = new PokemonEntity(world, bossClone, CobblemonEntities.POKEMON);
+        int chunkX = (int) Math.floor(position.getX() / 16);
+        int chunkZ = (int) Math.floor(position.getZ() / 16);
+        world.setChunkForced(chunkX, chunkZ, true);
         entity.setPosition(position);
         world.spawnEntity(entity);
-        clones.add(entity);
 
-        entity.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, -1, 9999, false, false));
         entity.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, -1, 9999, false, false));
+        entity.setPersistent();
+        entity.setHealth(entity.getMaxHealth());
 
+        PlayerPartyStore party = Cobblemon.INSTANCE.getStorage().getParty(player);
+
+        if (party.size() <= 0) {
+            player.sendMessage(Text.literal("No Pokemon in party!"));
+            return;
+        }
 
         UUID leadingPokemon = null;
         for (Pokemon pokemon : party) {
@@ -309,7 +313,9 @@ public class Raid {
         }
 
         UUID finalLeadingPokemon = leadingPokemon;
-        addTask(world, 1, () -> BattleBuilder.INSTANCE.pve(player, entity, finalLeadingPokemon, BattleFormat.Companion.getGEN_9_SINGLES(), false, true));
+
+        addTask(world, 1, () -> BattleBuilder.INSTANCE.pve(player, entity, finalLeadingPokemon, BattleFormat.Companion.getGEN_9_SINGLES(), false, false));
+        world.setChunkForced(chunkX, chunkZ, false);
     }
 
     // Ran out of time!

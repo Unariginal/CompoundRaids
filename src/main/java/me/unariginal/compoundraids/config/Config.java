@@ -68,13 +68,13 @@ public class Config {
             }
         }
 
-        Path configPath = FabricLoader.getInstance().getConfigDir().resolve("CompoundRaids/config.json");
+        Path configPath = FabricLoader.getInstance().getConfigDir().resolve("CompoundRaids/raids-config.json");
         File configFile = configPath.toFile();
 
         if (!configFile.exists()) {
             configFile.createNewFile();
 
-            InputStream in = CompoundRaids.class.getResourceAsStream("/config.json");
+            InputStream in = CompoundRaids.class.getResourceAsStream("/raids-config.json");
             OutputStream out = new FileOutputStream(configFile);
 
             byte[] buffer = new byte[1024];
@@ -163,13 +163,13 @@ public class Config {
             out.close();
         }
 
-        Path messagesPath = FabricLoader.getInstance().getConfigDir().resolve("CompoundRaids/messages.json");
+        Path messagesPath = FabricLoader.getInstance().getConfigDir().resolve("CompoundRaids/raid-messages.json");
         File messagesFile = messagesPath.toFile();
 
         if (!messagesFile.exists()) {
             messagesFile.createNewFile();
 
-            InputStream in = CompoundRaids.class.getResourceAsStream("/messages.json");
+            InputStream in = CompoundRaids.class.getResourceAsStream("/raid-messages.json");
             OutputStream out = new FileOutputStream(messagesFile);
 
             byte[] buffer = new byte[1024];
@@ -184,7 +184,7 @@ public class Config {
     }
 
     public void loadConfig() {
-        Path configPath = FabricLoader.getInstance().getConfigDir().resolve("CompoundRaids/config.json");
+        Path configPath = FabricLoader.getInstance().getConfigDir().resolve("CompoundRaids/raids-config.json");
         File configFile = configPath.toFile();
 
         JsonElement root;
@@ -328,18 +328,18 @@ public class Config {
                     bossPokemon.getMoveSet().setMove(3, move4.create());
                 }
 
-                int maxhp = (((2 * bossPokemon.getSpecies().getBaseStats().get(Stats.HP) + bossPokemon.getIvs().get(Stats.HP) + (bossPokemon.getEvs().get(Stats.HP) / 4)) * level) / 100) + level + 10;
+                //int maxhp = (((2 * bossPokemon.getSpecies().getBaseStats().get(Stats.HP) + bossPokemon.getIvs().get(Stats.HP) + (bossPokemon.getEvs().get(Stats.HP) / 4)) * level) / 100) + level + 10;
 
-                try {
-                    Field pokeField = bossPokemon.getClass().getDeclaredField("currentHealth");
-                    pokeField.setAccessible(true);
-                    pokeField.set(bossPokemon, maxhp);
-                } catch (IllegalAccessException | NoSuchFieldException e) {
-                    throw new RuntimeException(e);
-                }
+                //try {
+                //    Field pokeField = bossPokemon.getClass().getDeclaredField("currentHealth");
+                //    pokeField.setAccessible(true);
+                //    pokeField.set(bossPokemon, maxhp);
+                //} catch (IllegalAccessException | NoSuchFieldException e) {
+                //    throw new RuntimeException(e);
+                //}
 
                 bossPokemon.getCustomProperties().add(UncatchableProperty.INSTANCE.uncatchable());
-                bossPokemon.getSpecies().getFeatures().add("dmax=10");
+                //bossPokemon.getSpecies().getFeatures().add("dmax=10");
 
                 // TODO: Held Item
 
@@ -353,7 +353,7 @@ public class Config {
                     weights.put(locStr, locWeight);
                 }
 
-                Boss bossInfo = new Boss(boss, bossPokemon, maxhp, maxhp, spawnLocations, weights);
+                Boss bossInfo = new Boss(boss, bossPokemon, bossPokemon.getMaxHealth(), bossPokemon.getMaxHealth(), spawnLocations, weights);
 
                 bossList.put(boss, bossInfo);
 
@@ -461,7 +461,7 @@ public class Config {
     }
 
     public void loadMessages() {
-        Path messagesPath = FabricLoader.getInstance().getConfigDir().resolve("CompoundRaids/messages.json");
+        Path messagesPath = FabricLoader.getInstance().getConfigDir().resolve("CompoundRaids/raid-messages.json");
         File messagesFile = messagesPath.toFile();
 
         JsonElement root;
@@ -485,7 +485,7 @@ public class Config {
     }
 
     public void loadBossbars() {
-        Path messagesPath = FabricLoader.getInstance().getConfigDir().resolve("CompoundRaids/messages.json");
+        Path messagesPath = FabricLoader.getInstance().getConfigDir().resolve("CompoundRaids/raid-messages.json");
         File messagesFile = messagesPath.toFile();
 
         JsonElement root;

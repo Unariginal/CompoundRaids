@@ -2,17 +2,18 @@ package me.unariginal.compoundraids.datatypes;
 
 import com.cobblemon.mod.common.Cobblemon;
 import com.cobblemon.mod.common.CobblemonEntities;
-import com.cobblemon.mod.common.api.pokemon.PokemonProperties;
-import com.cobblemon.mod.common.api.pokemon.stats.Stats;
 import com.cobblemon.mod.common.api.storage.party.PlayerPartyStore;
 import com.cobblemon.mod.common.battles.BattleBuilder;
 import com.cobblemon.mod.common.battles.BattleFormat;
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
+import com.cobblemon.mod.common.entity.pokemon.effects.IllusionEffect;
 import com.cobblemon.mod.common.pokemon.Pokemon;
-import com.cobblemon.mod.common.pokemon.properties.UncatchableProperty;
+import kotlin.Unit;
+import kotlin.jvm.internal.Intrinsics;
 import me.unariginal.compoundraids.CompoundRaids;
 import me.unariginal.compoundraids.managers.Bossbar;
 import me.unariginal.compoundraids.managers.Messages;
+import me.unariginal.compoundraids.utils.PokemonUtils;
 import net.kyori.adventure.bossbar.BossBar;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
@@ -21,7 +22,6 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.Vec3d;
 
-import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.*;
 
@@ -43,7 +43,7 @@ public class Raid {
 
     private final Map<Long, List<Task>> tasks = new HashMap<>();
     private BossBarData bossBarData;
-    private Map<ServerPlayerEntity, BossBar> bossbars = new HashMap<>();
+    private final Map<ServerPlayerEntity, BossBar> bossbars = new HashMap<>();
 
     public ArrayList<ServerPlayerEntity> playersToBeBattled = new ArrayList<>();
     public ArrayList<ServerPlayerEntity> playersBattling = new ArrayList<>();
@@ -67,7 +67,7 @@ public class Raid {
                 if (bossEntity.isBattling()) {
                     if (bossEntity.getBattleId() != null) {
                         if (Cobblemon.INSTANCE.getBattleRegistry().getBattle(bossEntity.getBattleId()) != null) {
-                            Cobblemon.INSTANCE.getBattleRegistry().getBattle(bossEntity.getBattleId()).end();
+                            Objects.requireNonNull(Cobblemon.INSTANCE.getBattleRegistry().getBattle(bossEntity.getBattleId())).end();
                         }
                     }
                 }
@@ -260,30 +260,8 @@ public class Raid {
 
     private void createCatchEncounter(ServerPlayerEntity player) {
         Vec3d position = player.getPos();
-
-        Pokemon bossPokemon = catchBoss.bossPokemon();
-        Pokemon bossClone = new Pokemon();
-        bossClone.setSpecies(bossPokemon.getSpecies());
-
-        try {
-            Field pokeField = bossClone.getClass().getDeclaredField("level");
-            pokeField.setAccessible(true);
-            pokeField.set(bossClone, bossPokemon.getLevel());
-        } catch (IllegalAccessException | NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        }
-
-        bossClone.getCustomProperties().clear();
-        PokemonProperties.Companion.parse(bossPokemon.getForm().getName()).apply(bossClone);
-        bossClone.setGender(bossPokemon.getGender());
-        bossClone.updateAbility(bossPokemon.getAbility());
-        bossClone.setShiny(bossPokemon.getShiny());
-        bossClone.setNature(bossPokemon.getNature());
-        bossClone.setEvs$common(bossPokemon.getEvs());
-        bossClone.setIvs$common(bossPokemon.getIvs());
-        bossClone.getMoveSet().copyFrom(bossPokemon.getMoveSet());
+        Pokemon bossClone = PokemonUtils.clone(catchBoss.bossPokemon());
         bossClone.heal();
-        bossClone.setCurrentHealth(bossClone.getMaxHealth());
 
         ServerWorld world = player.getServerWorld();
         PokemonEntity entity = new PokemonEntity(world, bossClone, CobblemonEntities.POKEMON);
@@ -295,7 +273,7 @@ public class Raid {
 
         entity.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, -1, 9999, false, false));
         entity.setPersistent();
-        entity.setHealth(entity.getMaxHealth());
+        entity.setInvulnerable(true);
 
         PlayerPartyStore party = Cobblemon.INSTANCE.getStorage().getParty(player);
 
@@ -304,17 +282,11 @@ public class Raid {
             return;
         }
 
-        UUID leadingPokemon = null;
-        for (Pokemon pokemon : party) {
-            if (!pokemon.isFainted()) {
-                leadingPokemon = pokemon.getUuid();
-                break;
-            }
-        }
-
-        UUID finalLeadingPokemon = leadingPokemon;
-
-        addTask(world, 1, () -> BattleBuilder.INSTANCE.pve(player, entity, finalLeadingPokemon, BattleFormat.Companion.getGEN_9_SINGLES(), false, false));
+        UUID finalLeadingPokemon = PokemonUtils.getLeadingPokemon(party);
+        assert finalLeadingPokemon != null;
+        party.heal();
+        Objects.requireNonNull(party.get(finalLeadingPokemon)).sendOut(world, position, null, (pokemonEntity) -> Unit.INSTANCE);
+        addTask(world, 5, () -> BattleBuilder.INSTANCE.pve(player, entity, finalLeadingPokemon, BattleFormat.Companion.getGEN_9_SINGLES(), true, true));
         world.setChunkForced(chunkX, chunkZ, false);
     }
 

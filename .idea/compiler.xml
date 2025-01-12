@@ -2,8 +2,6 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <bytecodeTargetLevel target="23">
-      <module name="CompoundRaids.client" target="21" />
-      <module name="CompoundRaids.main" target="21" />
       <module name="CompoundRaids.test" target="21" />
     </bytecodeTargetLevel>
   </component>
